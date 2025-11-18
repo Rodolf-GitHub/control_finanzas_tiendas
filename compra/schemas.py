@@ -3,9 +3,18 @@ from compra.models import Compra
 from typing import Optional
 
 class CompraSchema(ModelSchema):
+    producto_nombre: Optional[str]
+    producto_imagen: Optional[str]
     class Meta:
         model=Compra
         fields='__all__'
+    @staticmethod
+    def resolve_producto_nombre(compra: Compra) -> Optional[str]:
+        return compra.producto.nombre if compra.producto else None
+    @staticmethod
+    def resolve_producto_imagen(compra: Compra) -> Optional[str]:
+        return compra.producto.imagen if compra.producto else None
+    
 
 class CompraInSchema(Schema):
     producto_id: int

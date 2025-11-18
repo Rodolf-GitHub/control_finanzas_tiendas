@@ -16,3 +16,6 @@ class Producto(BaseModel):
 
     class Meta:
         db_table = 'productos'
+        constraints = [
+            models.UniqueConstraint(fields=['tienda', 'nombre'], name='unique_producto_nombre_por_tienda')
+        ]

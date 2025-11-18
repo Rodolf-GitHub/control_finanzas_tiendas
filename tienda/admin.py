@@ -4,8 +4,8 @@ from .models import Tienda
 
 @admin.register(Tienda)
 class TiendaAdmin(admin.ModelAdmin):
-	list_display = ('id', 'nombre', 'telefono', 'direccion', 'created_at')
+	list_display = ('id', 'nombre', 'telefono', 'direccion', 'fecha_creacion')
 	search_fields = ('nombre', 'direccion', 'telefono')
-	list_filter = ('created_at',)
-	readonly_fields = ('created_at', 'updated_at')
+	list_filter = ('fecha_creacion',)
+	readonly_fields = ('fecha_creacion', 'ultima_actualicacion')
 

@@ -4,8 +4,8 @@ from .models import Compra
 
 @admin.register(Compra)
 class CompraAdmin(admin.ModelAdmin):
-	list_display = ('id', 'producto', 'cantidad', 'total_precio', 'created_at')
+	list_display = ('id', 'producto', 'cantidad', 'total_precio', 'fecha_creacion')
 	search_fields = ('producto__nombre',)
-	list_filter = ('created_at',)
-	readonly_fields = ('created_at', 'updated_at')
+	list_filter = ('fecha_creacion',)
+	readonly_fields = ('fecha_creacion', 'ultima_actualicacion')
 

@@ -1,0 +1,23 @@
+{% extends "admin/change_list.html" %}
+
+{% block content %}
+    <div style="margin-bottom:10px;">
+        <form method="get">
+            <label for="id_tienda_filter" style="margin-right:6px; font-weight:normal;">Tienda:</label>
+            <select id="id_tienda_filter" name="tienda__id__exact" onchange="this.form.submit()" style="padding:4px 6px;">
+                <option value="">-- Todas --</option>
+                {% for tienda in tiendas %}
+                    <option value="{{ tienda.pk }}" {% if selected_tienda|stringformat:"s" == tienda.pk|stringformat:"s" %}selected{% endif %}>{{ tienda.nombre }}</option>
+                {% endfor %}
+            </select>
+            {# Preserve other GET params #}
+            {% for key, value in request.GET.items %}
+                {% if key != 'tienda__id__exact' %}
+                    <input type="hidden" name="{{ key }}" value="{{ value }}" />
+                {% endif %}
+            {% endfor %}
+        </form>
+    </div>
+
+    {{ block.super }}
+{% endblock %}

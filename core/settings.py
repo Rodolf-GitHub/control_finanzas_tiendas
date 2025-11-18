@@ -121,6 +121,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -134,4 +136,21 @@ JAZZMIN_SETTINGS = {
     "site_header": "Control Finanzas",
     "welcome_sign": "Bienvenido al panel de administración",
     "search_model": "tienda.Tienda",
+    # Iconos para la barra lateral (Jazzmin usa clases de Font Awesome)
+    "icons": {
+        # por aplicación
+        "tienda": "fas fa-store",
+        "producto": "fas fa-box-open",
+        "compra": "fas fa-shopping-cart",
+        "venta": "fas fa-cash-register",
+        # por modelo (opcional, usados si quieres iconos específicos por modelo)
+        "tienda.Tienda": "fas fa-store",
+        "producto.Producto": "fas fa-box-open",
+        "compra.Compra": "fas fa-shopping-cart",
+        "venta.Venta": "fas fa-cash-register",
+        # Iconos para auth (usuarios y grupos)
+        "auth": "fas fa-user",
+        "auth.User": "fas fa-user",
+        "auth.Group": "fas fa-users",
+    },
 }

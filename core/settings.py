@@ -31,6 +31,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -125,3 +126,12 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Configuración mínima para Django Jazzmin
+JAZZMIN_SETTINGS = {
+    "site_title": "Control Finanzas Tiendas",
+    "site_header": "Control Finanzas",
+    "welcome_sign": "Bienvenido al panel de administración",
+    "search_model": "tienda.Tienda",
+}

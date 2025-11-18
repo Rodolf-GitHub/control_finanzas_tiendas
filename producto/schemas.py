@@ -10,8 +10,8 @@ class ProductoSchema(ModelSchema):
 
 class ProductoInSchema(Schema):
     nombre: str
-    descripcion: Optional[str]
+    detalles: Optional[str]
     precio: float
     tienda_id: int
     stock: Optional[int] = 0
-    imagen: Optional[str] = None
+    # imagen se envía como archivo multipart/form-data en el endpoint, no como URL

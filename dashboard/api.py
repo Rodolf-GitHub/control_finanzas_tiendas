@@ -3,6 +3,7 @@ from .schemas import StoreSummary, TopStore
 from tienda.models import Tienda
 from django.db.models import Sum, F, Q, Subquery, OuterRef
 from producto.models import Producto
+from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
 from typing import Optional
@@ -96,8 +97,33 @@ def store_summary(request, tienda_id: int, period: Optional[str] = None):
     ventas_total = tienda.ventas_total or 0
     balance = ventas_total - compras_total
 
-    tienda_imagen = getattr(tienda, 'imagen')
-    imagen_url = tienda_imagen.url if tienda_imagen else None
+    # Obtener URL de la imagen de forma robusta: ImageFieldFile o path anotado
+    imagen_url = None
+    imagen_field = getattr(tienda, 'imagen', None)
+    if imagen_field:
+        try:
+            # Preferir URL absoluta como en otras APIs
+            imagen_url = request.build_absolute_uri(imagen_field.url)
+        except Exception:
+            # imagen_field puede ser una cadena (path) si fue anotada o cargada parcialmente
+            if isinstance(imagen_field, str):
+                media_url = getattr(settings, 'MEDIA_URL', '/media/')
+                path = media_url.rstrip('/') + '/' + imagen_field.lstrip('/')
+                imagen_url = request.build_absolute_uri(path)
+
+    # Si no se obtuvo, comprobar la anotación 'tienda_imagen' (subquery o F)
+    if not imagen_url:
+        annotated_val = getattr(tienda, 'tienda_imagen', None)
+        if annotated_val:
+            if hasattr(annotated_val, 'url'):
+                try:
+                    imagen_url = request.build_absolute_uri(annotated_val.url)
+                except Exception:
+                    imagen_url = None
+            elif isinstance(annotated_val, str):
+                media_url = getattr(settings, 'MEDIA_URL', '/media/')
+                path = media_url.rstrip('/') + '/' + annotated_val.lstrip('/')
+                imagen_url = request.build_absolute_uri(path)
 
     return StoreSummary(
         tienda_id=tienda.pk,
@@ -135,6 +161,28 @@ def top_store(request, period: Optional[str] = None):
     if not top:
         return TopStore(tienda_id=0, tienda_nombre="", balance=0)
 
-    tienda_imagen = getattr(top, 'imagen')
-    imagen_url = tienda_imagen.url if tienda_imagen else None
+    # construir imagen URL para el top
+    imagen_url = None
+    imagen_field = getattr(top, 'imagen', None)
+    if imagen_field:
+        try:
+            imagen_url = request.build_absolute_uri(imagen_field.url)
+        except Exception:
+            if isinstance(imagen_field, str):
+                media_url = getattr(settings, 'MEDIA_URL', '/media/')
+                path = media_url.rstrip('/') + '/' + imagen_field.lstrip('/')
+                imagen_url = request.build_absolute_uri(path)
+    if not imagen_url:
+        annotated_val = getattr(top, 'tienda_imagen', None)
+        if annotated_val:
+            if hasattr(annotated_val, 'url'):
+                try:
+                    imagen_url = request.build_absolute_uri(annotated_val.url)
+                except Exception:
+                    imagen_url = None
+            elif isinstance(annotated_val, str):
+                media_url = getattr(settings, 'MEDIA_URL', '/media/')
+                path = media_url.rstrip('/') + '/' + annotated_val.lstrip('/')
+                imagen_url = request.build_absolute_uri(path)
+
     return TopStore(tienda_id=top.pk, tienda_nombre=top.nombre, tienda_imagen=imagen_url, balance=top.balance or 0)

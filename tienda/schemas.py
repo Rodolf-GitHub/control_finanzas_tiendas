@@ -12,5 +12,5 @@ class TiendaInSchema(Schema):
     direccion: Optional[str] = None
     telefono: Optional[str] = None
     descripcion: Optional[str] = None
-    imagen: Optional[str] = None
+    # imagen se envía como archivo multipart/form-data en el endpoint, no como URL
     

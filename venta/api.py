@@ -26,16 +26,27 @@ def list_ventas_by_producto(request, producto_id: int):
     """
     return Venta.objects.filter(producto_id=producto_id)
 
-@router.patch("/{venta_id}/", response=VentaSchema)
-def update_venta(request, venta_id: int, venta_in: VentaInSchema):
+
+@router.post("/", response=VentaSchema)
+def create_venta(request, venta_in: VentaInSchema):
     """
-    Update an existing venta.
+    Create a new venta and update product stock (decrease).
     """
-    venta = get_object_or_404(Venta, id=venta_id)
-    for attr, value in venta_in.dict(exclude_unset=True).items():
-        setattr(venta, attr, value)
-    venta.save()
+    producto = get_object_or_404(Producto, id=venta_in.producto_id)
+    venta = Venta.objects.create(
+        producto=producto,
+        cantidad=venta_in.cantidad,
+        total_precio=venta_in.total_precio or producto.precio * venta_in.cantidad
+    )
+    # Actualizar el stock del producto (disminuye en la cantidad vendida)
+    try:
+        producto.stock = producto.stock - venta.cantidad
+    except Exception:
+        producto.stock = -venta.cantidad
+    producto.save()
     return venta
+
+
 
 @router.delete("/{venta_id}/", response={204: None})
 def delete_venta(request, venta_id: int):

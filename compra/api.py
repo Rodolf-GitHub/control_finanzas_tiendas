@@ -36,22 +36,16 @@ def create_compra(request, compra_in: CompraInSchema):
         cantidad=compra_in.cantidad,
         total_precio=compra_in.total_precio or producto.precio * compra_in.cantidad
     )
+    # Actualizar el stock del producto (aumenta en la cantidad comprada)
+    try:
+        producto.stock = producto.stock + compra.cantidad
+    except Exception:
+        # En caso de algún tipo inusual, asignar directamente
+        producto.stock = compra.cantidad
+    producto.save()
     return compra
 
-@router.patch("/{compra_id}/", response=CompraSchema)
-def update_compra(request, compra_id: int, compra_in: CompraInSchema):
-    """
-    Update an existing compra.
-    """
-    compra = get_object_or_404(Compra, id=compra_id)
-    for attr, value in compra_in.dict(exclude_unset=True).items():
-        if attr == "producto_id":
-            producto = get_object_or_404(Producto, id=value)
-            setattr(compra, "producto", producto)
-        else:
-            setattr(compra, attr, value)
-    compra.save()
-    return compra
+
 
 @router.delete("/{compra_id}/", response={204: None})
 def delete_compra(request, compra_id: int):

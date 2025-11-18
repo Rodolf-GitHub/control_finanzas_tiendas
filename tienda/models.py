@@ -3,7 +3,7 @@ from base_app.models import BaseModel
 
 # Create your models here.
 class Tienda(BaseModel):
-    imagen = models.ImageField(upload_to='tiendas/', null=True, blank=True)
+    imagen = models.ImageField(upload_to='imagenes/', null=True, blank=True)
     nombre = models.CharField(max_length=100)
     direccion = models.CharField(max_length=255,null=True, blank=True)
     telefono = models.CharField(max_length=20,null=True, blank=True)

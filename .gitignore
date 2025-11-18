@@ -11,3 +11,7 @@ wheels/
 
 #database
 db.sqlite3
+
+#media files
+imagenes/
+

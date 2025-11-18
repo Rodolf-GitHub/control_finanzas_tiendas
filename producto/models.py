@@ -6,10 +6,10 @@ from base_app.models import BaseModel
 class Producto(BaseModel):
     tienda = models.ForeignKey(Tienda, on_delete=models.CASCADE, related_name='productos')
     nombre = models.CharField(max_length=100)
-    detalles = models.TextField()
+    detalles = models.TextField(null=True, blank=True)
     stock = models.PositiveIntegerField()
-    imagen = models.ImageField(upload_to='productos/', null=True, blank=True)
-    precio = models.DecimalField(max_digits=10, decimal_places=2)
+    imagen = models.ImageField(upload_to='imagenes/', null=True, blank=True)
+    precio = models.DecimalField(max_digits=10, decimal_places=2,null=True, blank=True,default=0.00)
 
     class Meta:
         db_table = 'productos'

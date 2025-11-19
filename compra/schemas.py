@@ -1,6 +1,7 @@
 from ninja import Schema,ModelSchema
 from compra.models import Compra
 from typing import Optional
+from datetime import datetime
 
 class CompraSchema(ModelSchema):
     producto_nombre: Optional[str]
@@ -20,4 +21,10 @@ class CompraInSchema(Schema):
     producto_id: int
     cantidad: int
     total_precio: Optional[float] = 0.0
+    fecha_creacion: Optional[datetime] = None  # Opcional: fecha/hora para asignar en creación
+
+class SimpleCompraSchema(Schema):
+    id: int
+    producto_id: int
+    cantidad: int
 

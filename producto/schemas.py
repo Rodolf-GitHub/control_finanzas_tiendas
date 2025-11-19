@@ -15,3 +15,8 @@ class ProductoInSchema(Schema):
     tienda_id: int
     stock: Optional[int] = 0
     # imagen se envía como archivo multipart/form-data en el endpoint, no como URL
+
+class SimpleProductoSchema(Schema):
+    id: int
+    nombre: str
+    

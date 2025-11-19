@@ -1,6 +1,7 @@
 from ninja import Schema,ModelSchema
 from tienda.models import Tienda
 from typing import Optional
+from datetime import datetime
 from .models import Venta
 from producto.models import Producto
 
@@ -21,3 +22,9 @@ class VentaInSchema(Schema):
     producto_id: int
     cantidad: int
     total_precio: Optional[float] = 0.0
+    fecha_creacion: Optional[datetime] = None  # Opcional: fecha/hora para asignar en creación
+
+class SimpleVentaSchema(Schema):
+    id: int
+    producto_id: int
+    cantidad: int

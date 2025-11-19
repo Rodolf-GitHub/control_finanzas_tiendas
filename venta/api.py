@@ -58,8 +58,18 @@ def create_venta(request, venta_in: VentaInSchema):
             total = Decimal(producto.precio) * Decimal(venta_in.cantidad)
     else:
         total = Decimal(producto.precio) * Decimal(venta_in.cantidad)
-    hoy = timezone.localdate()
-    venta = Venta.objects.filter(producto=producto, fecha_creacion__date=hoy).first()
+    # normalizar fecha_creacion si viene en el payload, usar hoy si no
+    fecha_dt = None
+    if getattr(venta_in, 'fecha_creacion', None):
+        fecha_dt = venta_in.fecha_creacion
+        if timezone.is_naive(fecha_dt):
+            fecha_dt = timezone.make_aware(fecha_dt, timezone.get_default_timezone())
+        venta_date = fecha_dt.date()
+    else:
+        venta_date = timezone.localdate()
+        fecha_dt = None
+
+    venta = Venta.objects.filter(producto=producto, fecha_creacion__date=venta_date).first()
     if venta:
         venta.cantidad = venta.cantidad + venta_in.cantidad
         venta.total_precio = venta.total_precio + total
@@ -69,7 +79,8 @@ def create_venta(request, venta_in: VentaInSchema):
         venta = Venta.objects.create(
             producto=producto,
             cantidad=venta_in.cantidad,
-            total_precio=total
+            total_precio=total,
+            **({'fecha_creacion': fecha_dt} if fecha_dt else {})
         )
         delta = venta_in.cantidad
 
@@ -84,9 +95,8 @@ def create_ventas_bulk(request, ventas_in: List[VentaInSchema]):
     Crear múltiples ventas en una sola petición y actualizar stock por cada una.
     Devuelve la lista de ventas creadas (ordenada por creación, más reciente primero).
     """
-    created_map = {}
+    created_map = {}  # key: (producto_id, fecha.date()) -> Venta
     stock_deltas = {}
-    hoy = timezone.localdate()
     with transaction.atomic():
         for venta_in in ventas_in:
             producto = get_object_or_404(Producto, id=venta_in.producto_id)
@@ -99,13 +109,24 @@ def create_ventas_bulk(request, ventas_in: List[VentaInSchema]):
             else:
                 total = Decimal(producto.precio) * Decimal(venta_in.cantidad)
 
-            if pid in created_map:
-                venta = created_map[pid]
+            # Normalizar fecha por item
+            fecha_dt = None
+            if getattr(venta_in, 'fecha_creacion', None):
+                fecha_dt = venta_in.fecha_creacion
+                if timezone.is_naive(fecha_dt):
+                    fecha_dt = timezone.make_aware(fecha_dt, timezone.get_default_timezone())
+                venta_date = fecha_dt.date()
+            else:
+                venta_date = timezone.localdate()
+
+            key = (pid, venta_date)
+            if key in created_map:
+                venta = created_map[key]
                 venta.cantidad = venta.cantidad + venta_in.cantidad
                 venta.total_precio = venta.total_precio + total
                 venta.save()
             else:
-                existing = Venta.objects.select_for_update().filter(producto=producto, fecha_creacion__date=hoy).first()
+                existing = Venta.objects.select_for_update().filter(producto=producto, fecha_creacion__date=venta_date).first()
                 if existing:
                     existing.cantidad = existing.cantidad + venta_in.cantidad
                     existing.total_precio = existing.total_precio + total
@@ -115,9 +136,10 @@ def create_ventas_bulk(request, ventas_in: List[VentaInSchema]):
                     venta = Venta.objects.create(
                         producto=producto,
                         cantidad=venta_in.cantidad,
-                        total_precio=total
+                        total_precio=total,
+                        **({'fecha_creacion': fecha_dt} if fecha_dt else {})
                     )
-                created_map[pid] = venta
+                created_map[key] = venta
 
             stock_deltas[pid] = stock_deltas.get(pid, 0) + venta_in.cantidad
 
@@ -133,7 +155,13 @@ def update_venta(request, venta_id: int, venta_in: VentaInSchema):
     Update an existing venta.
     """
     venta = get_object_or_404(Venta, id=venta_id)
-    for attr, value in venta_in.dict(exclude_unset=True).items():
+    updates = venta_in.dict(exclude_unset=True)
+    if 'fecha_creacion' in updates and updates['fecha_creacion'] is not None:
+        fecha_dt = updates['fecha_creacion']
+        if timezone.is_naive(fecha_dt):
+            fecha_dt = timezone.make_aware(fecha_dt, timezone.get_default_timezone())
+        updates['fecha_creacion'] = fecha_dt
+    for attr, value in updates.items():
         setattr(venta, attr, value)
     venta.save()
     return venta

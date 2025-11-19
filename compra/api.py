@@ -57,9 +57,19 @@ def create_compra(request, compra_in: CompraInSchema):
             total = Decimal(producto.precio) * Decimal(compra_in.cantidad)
     else:
         total = Decimal(producto.precio) * Decimal(compra_in.cantidad)
-    hoy = timezone.localdate()
+    # normalizar fecha_creacion si viene en el payload, usar hoy si no
+    fecha_dt = None
+    if getattr(compra_in, 'fecha_creacion', None):
+        fecha_dt = compra_in.fecha_creacion
+        if timezone.is_naive(fecha_dt):
+            fecha_dt = timezone.make_aware(fecha_dt, timezone.get_default_timezone())
+        compra_date = fecha_dt.date()
+    else:
+        compra_date = timezone.localdate()
+        fecha_dt = None
+
     # buscar compra existente del mismo producto en la misma fecha
-    compra = Compra.objects.filter(producto=producto, fecha_creacion__date=hoy).first()
+    compra = Compra.objects.filter(producto=producto, fecha_creacion__date=compra_date).first()
     if compra:
         compra.cantidad = compra.cantidad + compra_in.cantidad
         compra.total_precio = compra.total_precio + total
@@ -69,7 +79,8 @@ def create_compra(request, compra_in: CompraInSchema):
         compra = Compra.objects.create(
             producto=producto,
             cantidad=compra_in.cantidad,
-            total_precio=total
+            total_precio=total,
+            **({'fecha_creacion': fecha_dt} if fecha_dt else {})
         )
         delta = compra_in.cantidad
 
@@ -86,9 +97,8 @@ def create_compras_bulk(request, compras_in: List[CompraInSchema]):
     Crear múltiples compras en una sola petición y actualizar stock por cada una.
     Devuelve la lista de compras creadas (ordenada por creación, más reciente primero).
     """
-    created_map = {}
+    created_map = {}  # key: (producto_id, fecha.date()) -> Compra
     stock_deltas = {}
-    hoy = timezone.localdate()
     with transaction.atomic():
         for compra_in in compras_in:
             producto = get_object_or_404(Producto, id=compra_in.producto_id)
@@ -101,14 +111,25 @@ def create_compras_bulk(request, compras_in: List[CompraInSchema]):
             else:
                 total = Decimal(producto.precio) * Decimal(compra_in.cantidad)
 
-            if pid in created_map:
-                compra = created_map[pid]
+            # Normalizar fecha por item
+            fecha_dt = None
+            if getattr(compra_in, 'fecha_creacion', None):
+                fecha_dt = compra_in.fecha_creacion
+                if timezone.is_naive(fecha_dt):
+                    fecha_dt = timezone.make_aware(fecha_dt, timezone.get_default_timezone())
+                compra_date = fecha_dt.date()
+            else:
+                compra_date = timezone.localdate()
+
+            key = (pid, compra_date)
+            if key in created_map:
+                compra = created_map[key]
                 compra.cantidad = compra.cantidad + compra_in.cantidad
                 compra.total_precio = compra.total_precio + total
                 compra.save()
             else:
-                # bloquear búsqueda para evitar race
-                existing = Compra.objects.select_for_update().filter(producto=producto, fecha_creacion__date=hoy).first()
+                # bloquear búsqueda para evitar race por producto+fecha
+                existing = Compra.objects.select_for_update().filter(producto=producto, fecha_creacion__date=compra_date).first()
                 if existing:
                     existing.cantidad = existing.cantidad + compra_in.cantidad
                     existing.total_precio = existing.total_precio + total
@@ -118,9 +139,10 @@ def create_compras_bulk(request, compras_in: List[CompraInSchema]):
                     compra = Compra.objects.create(
                         producto=producto,
                         cantidad=compra_in.cantidad,
-                        total_precio=total
+                        total_precio=total,
+                        **({'fecha_creacion': fecha_dt} if fecha_dt else {})
                     )
-                created_map[pid] = compra
+                created_map[key] = compra
 
             stock_deltas[pid] = stock_deltas.get(pid, 0) + compra_in.cantidad
 
@@ -138,7 +160,14 @@ def update_compra(request, compra_id: int, compra_in: CompraInSchema):
     Update an existing compra.
     """
     compra = get_object_or_404(Compra, id=compra_id)
-    for attr, value in compra_in.dict(exclude_unset=True).items():
+    updates = compra_in.dict(exclude_unset=True)
+    # Normalizar fecha_creacion si viene
+    if 'fecha_creacion' in updates and updates['fecha_creacion'] is not None:
+        fecha_dt = updates['fecha_creacion']
+        if timezone.is_naive(fecha_dt):
+            fecha_dt = timezone.make_aware(fecha_dt, timezone.get_default_timezone())
+        updates['fecha_creacion'] = fecha_dt
+    for attr, value in updates.items():
         setattr(compra, attr, value)
     compra.save()
     return compra
